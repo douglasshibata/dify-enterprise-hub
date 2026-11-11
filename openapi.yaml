@@ -1,0 +1,209 @@
+openapi: 3.1.0
+info:
+  title: Enterprise AI Tools Gateway
+  description: Barramento OpenAPI para integração dos Agentes do Dify aos sistemas
+    corporativos.
+  version: 1.0.0
+servers:
+- url: /tools
+  description: Nginx Ingress Proxy
+paths:
+  /api/v1/hr/vacation-balance:
+    post:
+      tags:
+      - RH & Pessoas
+      summary: Consulta saldo de férias de funcionário
+      description: Consulta sistemas legados de folha de pagamento e retorna o saldo
+        de dias de férias vigentes.
+      operationId: get_vacation_balance_api_v1_hr_vacation_balance_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VacationQueryRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VacationQueryResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/finance/submit-reimbursement:
+    post:
+      tags:
+      - Finanças & Controladoria
+      summary: Registra solicitação de reembolso de despesa
+      description: Encaminha notas fiscais de despesas corporativas para a esteira
+        de aprovação do Financeiro.
+      operationId: submit_reimbursement_api_v1_finance_submit_reimbursement_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReimbursementSubmitRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReimbursementSubmitResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /healthz:
+    get:
+      tags:
+      - System
+      summary: Health Check
+      description: Health check endpoint to probe container readiness.
+      operationId: health_check_healthz_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    ReimbursementSubmitRequest:
+      properties:
+        employee_id:
+          type: string
+          pattern: ^EMP-[0-9]{4,6}$
+          title: Employee Id
+          description: Matrícula do colaborador no padrão EMP-XXXX
+          example: EMP-10492
+        expense_category:
+          type: string
+          title: Expense Category
+          description: 'Ex: ALIMENTACAO, TRANSPORTE, HOSPEDAGEM'
+          example: TRANSPORTE
+        amount:
+          type: number
+          exclusiveMinimum: 0.0
+          title: Amount
+          description: Valor total da nota fiscal
+          example: 150.0
+        invoice_number:
+          type: string
+          title: Invoice Number
+          description: Número da nota fiscal ou recibo
+          example: NF-99882
+      type: object
+      required:
+      - employee_id
+      - expense_category
+      - amount
+      - invoice_number
+      title: ReimbursementSubmitRequest
+    ReimbursementSubmitResponse:
+      properties:
+        protocol_id:
+          type: string
+          title: Protocol Id
+        status:
+          type: string
+          title: Status
+        sla_hours:
+          type: integer
+          title: Sla Hours
+      type: object
+      required:
+      - protocol_id
+      - status
+      - sla_hours
+      title: ReimbursementSubmitResponse
+    VacationQueryRequest:
+      properties:
+        employee_id:
+          type: string
+          pattern: ^EMP-[0-9]{4,6}$
+          title: Employee Id
+          description: Matrícula do colaborador no padrão EMP-XXXX
+          example: EMP-10492
+      type: object
+      required:
+      - employee_id
+      title: VacationQueryRequest
+    VacationQueryResponse:
+      properties:
+        employee_id:
+          type: string
+          title: Employee Id
+        employee_name:
+          type: string
+          title: Employee Name
+        accrued_days:
+          type: integer
+          title: Accrued Days
+          description: Saldo de dias de férias acumulados disponíveis
+        next_expiry_date:
+          type: string
+          title: Next Expiry Date
+          description: Data limite do período concessivo (AAAA-MM-DD)
+        can_schedule:
+          type: boolean
+          title: Can Schedule
+      type: object
+      required:
+      - employee_id
+      - employee_name
+      - accrued_days
+      - next_expiry_date
+      - can_schedule
+      title: VacationQueryResponse
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer
